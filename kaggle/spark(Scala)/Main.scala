@@ -143,7 +143,7 @@ object Main {
     Logger.getLogger("org").setLevel(Level.OFF)
     Logger.getLogger("akka").setLevel(Level.OFF)
 
-    val path = "/Users/andreychubin/Desktop/Kaggle/HR Analytics Job Change of Data Scientists/archive/aug_train.csv" // <путь до папки>
+    val path = "<путь до папки>/Kaggle/HR Analytics Job Change of Data Scientists/archive/aug_train.csv"
 
     val spark = SparkSession.builder
       .appName("Spark Scala App")
