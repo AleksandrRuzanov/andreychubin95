@@ -201,7 +201,9 @@ object Main {
 
     df_train = df_train.withColumn("features", asDense(f.col("features")))
 
-    val Array(train, test) = df_train.randomSplit(Array(0.7, 0.3)).cache()
+    val Array(train, test) = df_train.randomSplit(Array(0.7, 0.3))
+    
+    train.cache()
 
     // применяю модель
 
