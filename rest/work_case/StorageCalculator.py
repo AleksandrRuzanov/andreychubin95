@@ -163,7 +163,7 @@ class StorageCalculator:
 
         return worker_amount
 
-    def cost_of_storage_place_purchase(self):
+        def cost_of_storage_place_purchase(self):
         """
         Рассчёт стоимости обустройства склада
         :return: датафрейм с результатми расчётов стоимости приобретения палетоместа и параметрами
@@ -234,7 +234,7 @@ class StorageCalculator:
                         helper_function(l=lev, tech_2=pogr_5000)
                     elif lev == 4:
                         helper_function(l=lev, tech_2=pogr_6000)
-                    elif lev > 5:
+                    elif lev >= 5:
                         helper_function(l=lev, tech_2=pogr_high)
 
                 elif self.tech == 'штабелёр':
@@ -244,7 +244,7 @@ class StorageCalculator:
                         helper_function(l=lev, tech_2=stab_5000)
                     elif lev == 4:
                         helper_function(l=lev, tech_2=stab_6000)
-                    elif lev > 5:
+                    elif lev >= 5:
                         helper_function(l=lev, tech_2=pogr_high)
 
         stellage_comp_cost = dictionary.get('Доп. расходы на стеллаж за секцию (монтаж, отбойники и тд.)') \
@@ -300,8 +300,10 @@ class StorageCalculator:
                 dataframe.at[row, 'Тип техники'] = 'рохля'
             elif dataframe.loc[row, 'Количество ярусов'] in [2, 3, 4] and self.tech != 'погрузчик':
                 dataframe.at[row, 'Тип техники'] = 'штабелёр'
-            else:
+            elif dataframe.loc[row, 'Количество ярусов'] in [2, 3, 4] and self.tech == 'погрузчик':
                 dataframe.at[row, 'Тип техники'] = 'погрузчик'
+            else:
+                dataframe.at[row, 'Тип техники'] = 'ричтрак'
 
         return dataframe
 
