@@ -13,21 +13,24 @@ class StorageCalculator:
     :return датафрейм с итогами рассчётов и дополнительными метриками
     """
 
-    def __init__(self, input_file, s, height,
-                 period=1, horizon=5,
-                 tech=None, max_levels=5,
+    def __init__(self, input_file, s, height, h,
+                 period=1,
+                 horizon=5,
+                 tech=None,
+                 max_levels=5,
                  storage_utility=0.05,
                  conversion=0.33,
                  floor_conversion=0.6,
                  workers_yearly_salary=900000,
                  worker_coeff=0.6,
                  worker_round_distance=0.01,
-                 sectorization=0,
+                 sectorization=False,
                  sector_area=500):
         """
         :param input_file: датафрейм с ценами и стоймостями
         :param s: площадь склада (м2)
         :param height: высота потолка (м)
+        :param h: высота межярусного расстояния
         :param period: период оборачиваемости (среднее время нахождения ТМЦ на складе) в месяцах (default=1)
         :param horizon: срок службы техники и стеллажей в года (default=5)
         :param tech: 'штабелёр' или 'погрузчик' (default 'штабелёр')
@@ -39,12 +42,14 @@ class StorageCalculator:
         :param worker_coeff: коэффициент для пересчёта ПШЕ на площадь в ПШЕ на паллетоместо (исходя из 1 ПШЕ на 450 м2)
         :param worker_round_distance: дистанция округления для ПШЕ
         :param sectorization: включение/выключение функции секторизации
+        (использовать только с правильным подбором размера сектора)
         :param sector_area: площадь сектора склада
         """
 
         self.input_file = input_file
         self.s = s
         self.height = height
+        self.h = h
         self.tech = tech
         self.period = period
         self.horizon = horizon
@@ -57,8 +62,8 @@ class StorageCalculator:
         self.sectorization = sectorization
         self.sector_area = sector_area
 
-        if max_levels > self.height // 2:
-            self.max_level = int(self.height // 2)
+        if max_levels > self.height // self.h:
+            self.max_level = int(self.height // self.h)
         else:
             self.max_level = max_levels
 
@@ -94,15 +99,16 @@ class StorageCalculator:
         Подсчёт среднего расстояния одного маршрута погрузчика на складе (с секторизацией)\n
         :return: int or float
         """
-        c = self.s // self.sector_area
-
-        if c <= 1:
+        if self.sectorization:
+            c = self.s // self.sector_area
+            if c <= 1:
+                return (2 * self.s) ** 0.5
+            elif c >= 2:
+                a = c - 1
+                b = self.s - (a * self.sector_area)
+                return a * ((2 * self.sector_area) ** 0.5) + ((2 * b) ** 0.5)
+        else:
             return (2 * self.s) ** 0.5
-
-        elif c >= 2:
-            a = c - 1
-            b = self.s - (a * self.sector_area)
-            return a * ((2 * self.sector_area) ** 0.5) + ((2 * b) ** 0.5)
 
     def fork_machine_count(self, Q, H_1, alpha=0.85, T=260, q_f=0.5, q_n=1.5, t_1=0.15, t_0=1.2,
                            V_0=12, V_1=100, T_day=8):
@@ -122,19 +128,22 @@ class StorageCalculator:
         :param T_day: количество часов, которое работает склад в сутки
         :return: int
         """
-        l = self.forklift_trail_length() if self.sectorization == 1 else (2 * self.s) ** 0.5
+        length = self.forklift_trail_length()
         a_gr = q_f / q_n
-        t_loop = ((2.1 * H_1) / V_0) + ((2 * l) / V_1) + (4 * t_1) + t_0
+        t_loop = ((2.1 * H_1) / V_0) + ((2 * length) / V_1) + (4 * t_1) + t_0
         Q_hour = (60 * q_n * a_gr * alpha) / t_loop
         Q_day = Q / T
         fork = Q_day / (Q_hour * T_day)  # штуки
 
-        if fork < 1 and self.s // self.sector_area <= 1:
-            return 1
-        elif fork > 1 and m.ceil(fork) >= self.s // self.sector_area:
+        if not self.sectorization:
             return m.ceil(fork)
         else:
-            return self.s // self.sector_area
+            if fork < 1 and self.s // self.sector_area <= 1:
+                return 1
+            elif fork > 1 and m.ceil(fork) >= self.s // self.sector_area:
+                return m.ceil(fork)
+            else:
+                return self.s // self.sector_area
 
     def workers_count(self, storage_places):
         """
@@ -159,7 +168,7 @@ class StorageCalculator:
 
         return worker_amount
 
-        def cost_of_storage_place_purchase(self):
+    def cost_of_storage_place_purchase(self):
         """
         Рассчёт стоимости обустройства склада
         :return: датафрейм с результатми расчётов стоимости приобретения палетоместа и параметрами
@@ -203,45 +212,45 @@ class StorageCalculator:
         tech_amount = []
         add_rochlya = []
 
-        def helper_function(l, tech_1=None, tech_2=None):
+        def helper_function(tier, tech_1=None, tech_2=None):
             """
             эта функция помогает не писать один и тот же код много раз
             """
-            Q = self.annual_value(P=base_storage_places * l, mean_w=400)
-            n = self.fork_machine_count(Q=Q, H_1=l)
+            Q = self.annual_value(P=base_storage_places * tier, mean_w=400)
+            n = self.fork_machine_count(Q=Q, H_1=tier)
 
             if tech_1 is not None:
                 tech_price.append(tech_1)
             else:
-                tech_price.append((tech_2 * n) + (rochlya * (workers_amount[lev - 1] - n)))
+                tech_price.append((tech_2 * n) + (rochlya * (workers_amount[tier - 1] - n)))
 
             list_q.append(Q)
             tech_amount.append(n)
-            add_rochlya.append(workers_amount[l - 1] - n)
+            add_rochlya.append(workers_amount[tier - 1] - n)
 
         for lev in levels:
             if lev == 1:
-                helper_function(l=lev, tech_1=rochlya * workers_amount[lev - 1])
+                helper_function(tier=lev, tech_1=rochlya * workers_amount[lev - 1])
             else:
                 if self.tech == 'погрузчик':
                     if lev == 2:
-                        helper_function(l=lev, tech_2=pogr_2200)
+                        helper_function(tier=lev, tech_2=pogr_2200)
                     elif lev == 3:
-                        helper_function(l=lev, tech_2=pogr_5000)
+                        helper_function(tier=lev, tech_2=pogr_5000)
                     elif lev == 4:
-                        helper_function(l=lev, tech_2=pogr_6000)
+                        helper_function(tier=lev, tech_2=pogr_6000)
                     elif lev >= 5:
-                        helper_function(l=lev, tech_2=pogr_high)
+                        helper_function(tier=lev, tech_2=pogr_high)
 
                 elif self.tech == 'штабелёр':
                     if lev == 2:
-                        helper_function(l=lev, tech_2=stab_2200)
+                        helper_function(tier=lev, tech_2=stab_2200)
                     elif lev == 3:
-                        helper_function(l=lev, tech_2=stab_5000)
+                        helper_function(tier=lev, tech_2=stab_5000)
                     elif lev == 4:
-                        helper_function(l=lev, tech_2=stab_6000)
+                        helper_function(tier=lev, tech_2=stab_6000)
                     elif lev >= 5:
-                        helper_function(l=lev, tech_2=pogr_high)
+                        helper_function(tier=lev, tech_2=pogr_high)
 
         stellage_comp_cost = dictionary.get('Доп. расходы на стеллаж за секцию (монтаж, отбойники и тд.)') \
                              * block_amount
@@ -351,6 +360,7 @@ class StorageCalculator:
 
         df['Общая годовая стоимость (млн. руб)'] = df['Общая годовая стоимость (млн. руб)'].apply(lambda x: round(x, 4))
 
+        # расставляю колонки в правильном порядке
         columns = ['Количество ярусов',
                    'Количество палетомест',
                    'Количество единиц техники',
@@ -368,7 +378,7 @@ class StorageCalculator:
 
         return df[columns]
 
-    def short_run(self, PlacesToVolume=0.81):
+    def short_run(self, PlacesToVolume=0.80):
         df = self.cost_of_storage_place_purchase()
         df = df[['Количество палетомест']].copy()
         df['Куб. метров паллетного хранения'] = df['Количество палетомест'].apply(
@@ -412,16 +422,16 @@ def optimal_area_per_level(input_file, list_of_areas, h, horizon=5):
     return df1, df2, df3, df4, df5
 
 
-def visualization_area(input_file, list_of_areas, height=999, save=0):
+def visualization_area(input_file, list_of_areas, h, save=False):
     """
     Визуализация результатов рассчёта функции optimal_area_per_level()\n
     :param input_file: DataFrame со стоимостями
     :param list_of_areas: список площадей, по которым нужно провести анализ
-    :param height: предельная высота потолка (определяет количество уровней) (set 999 for max 5 value)
+    :param h: высота межярусного расстояния
     :param save: включени/отключение функции сохранения результата в виде png
     :return: график (+ png)
     """
-    df1, df2, df3, df4, df5 = optimal_area_per_level(input_file, list_of_areas, height)
+    df1, df2, df3, df4, df5 = optimal_area_per_level(input_file, list_of_areas, h)
 
     plt.figure(figsize=(20, 12))
 
@@ -437,16 +447,17 @@ def visualization_area(input_file, list_of_areas, height=999, save=0):
 
     plt.subplots_adjust(wspace=0.4)
 
-    if save == 1:
+    if save:
         plt.savefig('pic.png', dpi=500, bbox_inches='tight')
 
     plt.show()
 
 
-def visualization(df, save=0):
+def visualization(df, save=False):
     """
     Визуализация данных\n
     :param df: результат работы класса StorageCalculator
+    :param save: сохранить результат в виде картинки?
     :return: 4 графика
     """
     plt.figure(figsize=(12, 8))
@@ -475,7 +486,7 @@ def visualization(df, save=0):
 
     plt.subplots_adjust(wspace=0.4)
 
-    if save == 1:
+    if save:
         plt.savefig('picture.png', dpi=500, bbox_inches='tight')
 
     plt.show()
