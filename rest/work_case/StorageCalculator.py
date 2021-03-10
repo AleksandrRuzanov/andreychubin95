@@ -57,8 +57,8 @@ class StorageCalculator:
         self.sectorization = sectorization
         self.sector_area = sector_area
 
-        if max_levels < self.height // 2:
-            self.max_level = max_levels + 1
+        if max_levels > self.height // 2:
+            self.max_level = int(self.height // 2)
         else:
             self.max_level = max_levels
 
