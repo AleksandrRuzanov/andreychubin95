@@ -122,11 +122,7 @@ class StorageCalculator:
         :param T_day: количество часов, которое работает склад в сутки
         :return: int
         """
-        if self.sectorization == 1:
-            l = self.forklift_trail_length()
-        else:
-            l = (2 * self.s) ** 0.5
-
+        l = self.forklift_trail_length() if self.sectorization == 1 else (2 * self.s) ** 0.5
         a_gr = q_f / q_n
         t_loop = ((2.1 * H_1) / V_0) + ((2 * l) / V_1) + (4 * t_1) + t_0
         Q_hour = (60 * q_n * a_gr * alpha) / t_loop
