@@ -379,18 +379,17 @@ class StorageCalculator:
         return df['Количество палетомест'].max(), df['Куб. метров паллетного хранения'].max()
 
 
-def optimal_area_per_level(input_file, list_of_areas, height=999, horizon=5):
+def optimal_area_per_level(input_file, list_of_areas, h, horizon=5):
     """
     Рассчёт трат в разрезе различных площадей и различной ярусности\n
     :param input_file: DataFrame со стоимостями
     :param list_of_areas: список площадей, по которым нужно провести анализ
-    :param height: предельная высота потолка (определяет количество уровней) (set 999 for max 5 value)
+    :param h: высота межярусного расстояния
     :param horizon: горизонт амортизации в годах (default 5)
-    :return: от 1 до 5 DataFrame'ов
+    :return: 5 DataFrame'ов
     """
-    calc_base = StorageCalculator(input_file=input_file, s=100, height=20, horizon=horizon)
+    calc_base = StorageCalculator(input_file=input_file, s=100, height=20, h=h, horizon=horizon)
     df = calc_base.annual_cost()
-    df['Площадь'] = 0
     df.drop(df.index, inplace=True)
 
     df1 = df.copy()
@@ -400,46 +399,19 @@ def optimal_area_per_level(input_file, list_of_areas, height=999, horizon=5):
     df5 = df.copy()
 
     for element in list_of_areas:
-        calc = StorageCalculator(input_file=input_file, s=element, height=height)
-
+        calc = StorageCalculator(input_file=input_file, s=element, height=999, h=h)
         df_1 = calc.annual_cost()
 
-        df1 = df1.append(df_1[df_1.index == 0])
-        df2 = df2.append(df_1[df_1.index == 1])
-        df3 = df3.append(df_1[df_1.index == 2])
-        df4 = df4.append(df_1[df_1.index == 3])
-        df5 = df5.append(df_1[df_1.index == 4])
+        df1 = df1.append(df_1[df_1.index == 0], ignore_index=True)
+        df2 = df2.append(df_1[df_1.index == 1], ignore_index=True)
+        df3 = df3.append(df_1[df_1.index == 2], ignore_index=True)
+        df4 = df4.append(df_1[df_1.index == 3], ignore_index=True)
+        df5 = df5.append(df_1[df_1.index == 4], ignore_index=True)
 
-    df1.reset_index(drop=True, inplace=True)
-    df2.reset_index(drop=True, inplace=True)
-    df3.reset_index(drop=True, inplace=True)
-    df4.reset_index(drop=True, inplace=True)
-    df5.reset_index(drop=True, inplace=True)
+    for df_iter in [df1, df2, df3, df4, df5]:
+        df_iter['Площадь'] = list_of_areas
 
-    for i in range(len(df1)):
-        df1.at[i, 'Площадь'] = list_of_areas[i]
-        df2.at[i, 'Площадь'] = list_of_areas[i]
-        df3.at[i, 'Площадь'] = list_of_areas[i]
-        df4.at[i, 'Площадь'] = list_of_areas[i]
-        df5.at[i, 'Площадь'] = list_of_areas[i]
-
-    columns = ['Количество ярусов', 'Площадь', 'Количество палетомест',
-               'Количество единиц техники', 'Тип техники',
-               'Количество дополнительных рохлей',
-               'Стоимость палетоместа при покупке (руб.)',
-               'Возможный товарооборот (т/год)',
-               'Возможный товарооборот (куб. м/год)',
-               'Требуемое количество ПШЕ', 'Расходы на персонал (руб/пм в год)',
-               'Стоимость приобретения (руб/пм в год) (горизонт 5 лет)',
-               'Стоимость обслуживания (руб/пм в год)',
-               'Годовая стоимость за пм',
-               'Общая годовая стоимость (млн. руб)']
-
-    return df1[columns], \
-           df2[columns], \
-           df3[columns], \
-           df4[columns], \
-           df5[columns]
+    return df1, df2, df3, df4, df5
 
 
 def visualization_area(input_file, list_of_areas, height=999, save=0):
