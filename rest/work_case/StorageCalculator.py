@@ -2,6 +2,7 @@ import math as m
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
+from pandas.core.frame import DataFrame
 
 
 class StorageCalculator:
@@ -13,19 +14,23 @@ class StorageCalculator:
     :return датафрейм с итогами рассчётов и дополнительными метриками
     """
 
-    def __init__(self, input_file, s, height, h,
-                 period=1,
-                 horizon=5,
-                 tech=None,
-                 max_levels=5,
-                 storage_utility=0.05,
-                 conversion=0.33,
-                 floor_conversion=0.6,
-                 workers_yearly_salary=900000,
-                 worker_coeff=0.6,
-                 worker_round_distance=0.01,
-                 sectorization=False,
-                 sector_area=500):
+    def __init__(self,
+                 input_file: DataFrame,
+                 s: float,
+                 height: float,
+                 h: float,
+                 period: int = 1,
+                 horizon: int = 5,
+                 tech: str = None,
+                 max_levels: int = 5,
+                 storage_utility: float = 0.05,
+                 conversion: float = 0.33,
+                 floor_conversion: float = 0.6,
+                 workers_yearly_salary: float = 900000.0,
+                 worker_coeff: float = 0.6,
+                 worker_round_distance: float = 0.01,
+                 sectorization: bool = False,
+                 sector_area: float = 500.0):
         """
         :param input_file: датафрейм с ценами и стоймостями
         :param s: площадь склада (м2)
@@ -67,11 +72,11 @@ class StorageCalculator:
         else:
             self.max_level = max_levels
 
-    def setDefaultTech(self):
+    def setDefaultTech(self) -> None:
         if self.max_level > 1 and self.tech is None:
             self.tech = 'штабелёр'
 
-    def input_to_dict(self):
+    def input_to_dict(self) -> dict:
         """
         конвертер датафрейма в объект dict (только для использования внутри класса)
         """
@@ -82,7 +87,7 @@ class StorageCalculator:
 
         return dictionary
 
-    def annual_value(self, P, mean_w):
+    def annual_value(self, P, mean_w) -> float:
         """
         Примерное определение годового товарооборота скалада в тоннах\n
         :param P: количество палетомест на складе
@@ -94,7 +99,7 @@ class StorageCalculator:
 
         return (real_P * mean_w * 2 * mult) / 1000
 
-    def forklift_trail_length(self):
+    def forklift_trail_length(self) -> float:
         """
         Подсчёт среднего расстояния одного маршрута погрузчика на складе (с секторизацией)\n
         :return: int or float
@@ -110,8 +115,17 @@ class StorageCalculator:
         else:
             return (2 * self.s) ** 0.5
 
-    def fork_machine_count(self, Q, H_1, alpha=0.85, T=260, q_f=0.5, q_n=1.5, t_1=0.15, t_0=1.2,
-                           V_0=12, V_1=100, T_day=8):
+    def fork_machine_count(self, Q: float,
+                           H_1: float,
+                           alpha: float = 0.85,
+                           T: int = 260,
+                           q_f: float = 0.5,
+                           q_n: float = 1.5,
+                           t_1: float = 0.15,
+                           t_0: float = 1.2,
+                           V_0: float = 12.0,
+                           V_1: float = 100.0,
+                           T_day: float = 8) - > int:
         """
         Подсчёт требуемого количества погрузочной техники\n
 
@@ -145,7 +159,7 @@ class StorageCalculator:
             else:
                 return self.s // self.sector_area
 
-    def workers_count(self, storage_places):
+    def workers_count(self, storage_places: list) -> list:
         """
         Подсчёт требуемого количества ПШЕ в зависимомти от количества палетомест\n
         :param storage_places: количество палетомест на складе (список)
@@ -168,7 +182,7 @@ class StorageCalculator:
 
         return worker_amount
 
-    def cost_of_storage_place_purchase(self):
+    def cost_of_storage_place_purchase(self) -> DataFrame:
         """
         Рассчёт стоимости обустройства склада
         :return: датафрейм с результатми расчётов стоимости приобретения палетоместа и параметрами
@@ -212,7 +226,7 @@ class StorageCalculator:
         tech_amount = []
         add_rochlya = []
 
-        def helper_function(tier, tech_1=None, tech_2=None):
+        def helper_function(tier: int, tech_1: float = None, tech_2: float = None) -> None:
             """
             эта функция помогает не писать один и тот же код много раз
             """
@@ -312,7 +326,7 @@ class StorageCalculator:
 
         return dataframe
 
-    def annual_cost_of_maintenance_per_storage_place(self):
+    def annual_cost_of_maintenance_per_storage_place(self) -> list:
         """
         Рассчёт стоимости содержания в год на палетоместо
         :return: стоимость обслуживания палетоместа в год (list)
@@ -333,7 +347,7 @@ class StorageCalculator:
 
         return maintenance
 
-    def annual_cost(self):
+    def annual_cost(self) -> DataFrame:
         """
         Рассчёт общей стоимости на год за палетоместо
         :return: стоимость содержания палетоместа в год (list)
@@ -378,7 +392,7 @@ class StorageCalculator:
 
         return df[columns]
 
-    def short_run(self, PlacesToVolume=0.80):
+    def short_run(self, PlacesToVolume: float = 0.80) -> (int, float):
         df = self.cost_of_storage_place_purchase()
         df = df[['Количество палетомест']].copy()
         df['Куб. метров паллетного хранения'] = df['Количество палетомест'].apply(
@@ -387,7 +401,10 @@ class StorageCalculator:
         return df['Количество палетомест'].max(), df['Куб. метров паллетного хранения'].max()
 
 
-def optimal_area_per_level(input_file, list_of_areas, h, horizon=5):
+def optimal_area_per_level(input_file: DataFrame,
+                           list_of_areas: list,
+                           h: float,
+                           horizon: int = 5) -> (DataFrame, DataFrame, DataFrame, DataFrame, DataFrame):
     """
     Рассчёт трат в разрезе различных площадей и различной ярусности\n
     :param input_file: DataFrame со стоимостями
@@ -422,7 +439,10 @@ def optimal_area_per_level(input_file, list_of_areas, h, horizon=5):
     return df1, df2, df3, df4, df5
 
 
-def visualization_area(input_file, list_of_areas, h, save=False):
+def visualization_area(input_file: DataFrame,
+                       list_of_areas: list,
+                       h: float,
+                       save: bool = False) -> None:
     """
     Визуализация результатов рассчёта функции optimal_area_per_level()\n
     :param input_file: DataFrame со стоимостями
@@ -453,7 +473,7 @@ def visualization_area(input_file, list_of_areas, h, save=False):
     plt.show()
 
 
-def visualization(df, save=False):
+def visualization(df: DataFrame, save: bool = False) -> None:
     """
     Визуализация данных\n
     :param df: результат работы класса StorageCalculator
