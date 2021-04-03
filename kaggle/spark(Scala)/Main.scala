@@ -204,6 +204,7 @@ object Main {
     val Array(train, test) = df_train.randomSplit(Array(0.7, 0.3))
     
     train.cache()
+    test.cache()
 
     // применяю модель
 
