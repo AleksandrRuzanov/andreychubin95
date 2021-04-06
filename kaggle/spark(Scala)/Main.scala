@@ -34,8 +34,10 @@ object Main {
       df = df.na.fill(fillMap)
 
       // создаю функцию для поска самых частовстречающихся размеров компаний для каждого типа компаний
-      // Функция TOP как в SQL в Saprk не реализована
+      // Функция TOP как в SQL в Spark не реализована
       // Предпологает широкую трансформацию .sort, что может быть неэффективно на больших данных
+      // Использование этой функции довольно сомнительно, так как результат для теста будет
+      // отличаться от результата для трейна
 
       def getTopInGroup(group: String, DataFrame: DataFrame = df): Option[String] = {
         try {
@@ -143,7 +145,9 @@ object Main {
     Logger.getLogger("org").setLevel(Level.OFF)
     Logger.getLogger("akka").setLevel(Level.OFF)
 
-    val path = "<путь до папки>/Kaggle/HR Analytics Job Change of Data Scientists/archive/aug_train.csv"
+    // <путь до папки>
+    val trainPath =
+      "/Users/andreychubin/Desktop/DS/Kaggle/HR Analytics Job Change of Data Scientists/archive/aug_train.csv"
 
     val spark = SparkSession.builder
       .appName("Spark Scala App")
@@ -153,7 +157,7 @@ object Main {
     var df_train: DataFrame = spark.read.format("csv")
       .option("header", "true")
       .option("delimiter", ",")
-      .load(path)
+      .load(trainPath)
 
     // создаю список категориальных колонок для трансформеров
 
@@ -202,9 +206,8 @@ object Main {
     df_train = df_train.withColumn("features", asDense(f.col("features")))
 
     val Array(train, test) = df_train.randomSplit(Array(0.7, 0.3))
-    
+
     train.cache()
-    test.cache()
 
     // применяю модель
 
@@ -215,8 +218,9 @@ object Main {
       .setFeaturesCol("features")
 
     val search = new BestParamsSearch(rf, train, amountOfTrees)
+    val bestN: Int = search.getBestN
 
-    val rfModel = rf.setNumTrees(search.getBestN).fit(train)
+    val rfModel = rf.setNumTrees(bestN).fit(train)
     val prediction = rfModel.transform(test)
 
     val evaluation = new BinaryClassificationEvaluator()
@@ -224,7 +228,33 @@ object Main {
       .setRawPredictionCol("rawPrediction")
       .setMetricName("areaUnderROC")
 
-    println(evaluation.evaluate(prediction)) // 0.7879818069324455
+    println(evaluation.evaluate(prediction)) // 0.7828
+
+    // давайте сбалансируем данные перед боевым прогоном
+
+    val dfTrain = df_train.filter(f.col("target").equalTo(1))
+      .union(df_train.filter(f.col("target").equalTo(0)).sample(0.33))
+
+    val testPath =
+      "/Users/andreychubin/Desktop/DS/Kaggle/HR Analytics Job Change of Data Scientists/archive/augTest.csv"
+
+    var dfTest: DataFrame = spark.read.format("csv")
+      .option("header", "true")
+      .option("delimiter", ",")
+      .load(testPath)
+
+    dfTest = transformer.transform(dfTest)
+    dfTest = pipeline.transform(dfTest).select("enrollee_id", "features", "target")
+    dfTest = dfTest.withColumn("features", asDense(f.col("features")))
+
+    dfTest.cache()
+    dfTrain.cache()
+    df_train.unpersist()
+
+    val RF = rf.setNumTrees(bestN).fit(dfTrain)
+    val pred = RF.transform(dfTest)
+
+    println(evaluation.evaluate(pred)) // 0.7872
 
     spark.stop()
   }
