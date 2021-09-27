@@ -24,11 +24,11 @@ class ProphetCouncil:
     @staticmethod
     def _holiday_loader(freq: str) -> DataFrame:
         if freq == '15T':
-            holidays = pd.read_csv('/Users/andreychubin/Desktop/DS/Хакатон/holidays/holidays_15m.csv', sep=',')
+            holidays = pd.read_csv('./holidays_15m.csv', sep=',')
         elif freq == 'H':
-            holidays = pd.read_csv('/Users/andreychubin/Desktop/DS/Хакатон/holidays/holidays_h.csv', sep=',')
+            holidays = pd.read_csv('./holidays_h.csv', sep=',')
         else:
-            holidays = pd.read_csv('/Users/andreychubin/Desktop/DS/Хакатон/holidays/holidays_d.csv', sep=',')
+            holidays = pd.read_csv('./holidays_d.csv', sep=',')
             
         return holidays
     
@@ -103,7 +103,7 @@ class ProphetCouncil:
 
         try:
             if freq == '15T' and not self.config.default_prophet:
-                path = f'/Users/andreychubin/Desktop/DS/tstools/pickles/fb_{self.split_id}_{self.config.fb_how}.pickle'
+                path = f'./pickles/fb_{self.split_id}_{self.config.fb_how}.pickle'
                 with open(path, 'rb') as file:
                     fb = pickle.load(file)
                 logging.info('Prophet was read from pickle')
@@ -113,7 +113,7 @@ class ProphetCouncil:
             fb = self._get_fb(freq=freq, uncertainty=uncertainty)
             fb.fit(train_fb)
             if freq == '15T' and not self.config.default_prophet:
-                path = f'/Users/andreychubin/Desktop/DS/tstools/pickles/fb_{self.split_id}_{self.config.fb_how}.pickle'
+                path = f'./pickles/fb_{self.split_id}_{self.config.fb_how}.pickle'
                 with open(path, 'wb') as file:
                     pickle.dump(fb, file)
                 logging.debug('Prophet was saved to pickle')
