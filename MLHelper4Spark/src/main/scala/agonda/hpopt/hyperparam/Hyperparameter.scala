@@ -5,6 +5,7 @@ package hyperparam
 import org.apache.spark.sql.types._
 
 import scala.util.Random
+import scala.reflect.ClassTag
 
 /**
  * Represents a hyperparameter including its value
@@ -30,7 +31,7 @@ case class Hyperparameter[A] (hyperparameterType: HyperparameterType[A], value: 
  * Represents a type of Hyperparameter. Unlike [[Hyperparameter]], it does not have any value fields.
  * Provided a value or a [[Random]] generator, it can create a [[Hyperparameter]] object.
  */
-trait HyperparameterType[A] {
+abstract class HyperparameterType[A: ClassTag] {
 
   /**
    * Referring to [[org.apache.spark.ml.param.Param.name]]
