@@ -24,7 +24,7 @@ class BayesianHyperparameterOptimization(hpSpace: HyperparameterSpace,
                                          val gpf: GaussianProcessFactory = GaussianProcessFactory(),
                                          val acquisitionFct: GPAcquisitionFct = UCB(),
                                          val monteCarloSteps: Int = 10000,
-                                         val maximize: Boolean = true) {
+                                         val maximize: Boolean = true) extends java.io.Serializable {
 
   val (_hpSpace, random) = (seed, hpSpace.seed) match {
     case (Some(s), Some(_)) => (hpSpace, new Random(s))
