@@ -14,7 +14,7 @@ object MLHelper extends App {
   Logger.getLogger("org").setLevel(Level.ERROR)
   Logger.getLogger("com").setLevel(Level.ERROR)
 
-  val cvCount: Int = 3
+  val cvCount: Int = 5
   val objective: String = "multiclass"
   val label: String = "target"
 
