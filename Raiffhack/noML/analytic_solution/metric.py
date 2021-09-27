@@ -1,8 +1,7 @@
 import numpy as np
 
 
-def hit_func(deviation: float) -> float:
-    w = 1.1
+def hit_func(deviation: float, w: float = 1.1) -> float:
     if deviation < -0.6:
         return 9 * w
     elif -0.6 <= deviation < -0.15:
