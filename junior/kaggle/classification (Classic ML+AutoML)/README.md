@@ -9,5 +9,6 @@
 - Logistic Regression + Grid Search CV + scoring
 - Применение Sberbank LightAutoML + scoring
 
-[ссылка на страницу задачи](https://www.kaggle.com/jsphyg/weather-dataset-rattle-package)\newline
+[ссылка на страницу задачи](https://www.kaggle.com/jsphyg/weather-dataset-rattle-package)
+
 [ссылка на оргинальный notebook](https://www.kaggle.com/andreychubin/2-simple-models-automl-australia-rain)
