@@ -10,7 +10,7 @@ import scala.annotation.meta.setter
 
 
 trait LGBMTuner extends TunerTrait with java.io.Serializable {
-  // java.io.Serializable with
+
   override var model: BoosterType =  new LightGBMClassifier().setVerbosity(-1)
 
   @setter
