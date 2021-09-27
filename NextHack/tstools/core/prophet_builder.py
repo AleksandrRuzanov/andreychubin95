@@ -9,7 +9,7 @@ class ProphetBuilder:
     @staticmethod
     def get_prophet(freq: str, split_id: int) -> prophet.Prophet:
         if freq == '15T':
-            holidays = pd.read_csv('/Users/andreychubin/Desktop/DS/Хакатон/holidays/holidays_15m.csv', sep=',')
+            holidays = pd.read_csv('./holidays_15m.csv', sep=',')
 
             if split_id == 1:
                 # 0.34266
@@ -79,7 +79,7 @@ class ProphetBuilder:
                     .add_seasonality(name='15min', period=1/96, fourier_order=30)
 
         elif freq == 'H':
-            holidays = pd.read_csv('/Users/andreychubin/Desktop/DS/Хакатон/holidays/holidays_h.csv', sep=',')
+            holidays = pd.read_csv('./holidays_h.csv', sep=',')
 
             if split_id == 1:
                 pass
