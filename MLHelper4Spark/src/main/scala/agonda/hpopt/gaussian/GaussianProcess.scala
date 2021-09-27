@@ -12,7 +12,7 @@ import agonda.hpopt.hyperparam.HyperparameterEvalPoint
  * @param kernel Gaussian Process Kernel to calculate the correlations
  */
 class GaussianProcess(val evalPoints: Array[HyperparameterEvalPoint], val values: DenseVector[Double],
-                      val kernel: GaussianProcessKernel = SEKernel(lengthScale = 0.5)) {
+                      val kernel: GaussianProcessKernel = SEKernel(lengthScale = 0.5)) extends java.io.Serializable {
 
   require(evalPoints.nonEmpty, "evalPoints need to be non-empty")
   require(evalPoints.length == values.length, "Evaluation points array and objective functions value Array must be same length")
