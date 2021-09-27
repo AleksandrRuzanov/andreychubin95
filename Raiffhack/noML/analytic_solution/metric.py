@@ -32,4 +32,4 @@ if __name__ == '__main__':
     a = np.array([1, 2, 3])
     b = np.array([2, 3, 4])
 
-    metric(a, b)
+    metric_loss(a, b)
