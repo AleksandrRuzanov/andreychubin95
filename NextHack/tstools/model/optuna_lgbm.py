@@ -152,12 +152,13 @@ class OptunaTuner:
         return self._val, self._test
 
 
+# work in progress
 class OptunaTunerCV(OptunaTuner):
     def __init__(self, split_id: int, config: Configuration):
         super().__init__(split_id, config)
         self.solver = None
 
-    def _dataset(self) -> (Dataset, Dataset):
+    def _dataset(self) -> Dataset:
         base = pd.concat([self.train, self.val])
         x_train = base.drop(['ds', 'y'], axis=1)
         y_train = base.y.values
